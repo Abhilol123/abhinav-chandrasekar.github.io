@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-service
+  namespace: abhilol
+spec:
+  selector:
+    app: resume
+  type: LoadBalancer
+  ports:
+    - name: resume-tcp
+      protocol: TCP
+      port: 80
+      targetPort: resume-tcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume
+  namespace: abhilol
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resume
+  template:
+    metadata:
+      labels:
+        app: resume
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 600
+      containers:
+      - name: resume-nginx
+        image: abhilol/resume
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: '0.05'
+            memory: 64M
+          limits:
+            cpu: '0.20'
+            memory: 512M
+        ports:
+        - name: resume-tcp
+          containerPort: 80
+        livenessProbe:
+          exec:
+            command: ['ash', '-c', 'nc -z localhost 80']
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1
+          initialDelaySeconds: 30
+        readinessProbe:
+          exec:
+            command: ['ash', '-c', 'nc -z localhost 80']
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 4
+          successThreshold: 2
+          initialDelaySeconds: 30
